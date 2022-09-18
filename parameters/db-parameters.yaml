@@ -1,0 +1,19 @@
+Dev:
+  UserName: arsen_pdp_dev_admin
+  StorageSize: 6
+  InstanceClass: db.t3.micro
+  StorageType: standard
+  Password: 9l33hVJNW1Br
+
+
+Prod:
+  UserName: arsen_pdp_admin
+  StorageSize: 6
+  InstanceClass: db.t3.micro
+  StorageType: standard
+  Password: Y809RawoJ4C4
+
+Common:
+  Name: TestArsenDb
+  Engine: postgres
+  EngineVersion: 14.4

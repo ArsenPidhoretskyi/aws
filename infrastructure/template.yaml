@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: ArsenPdp Infrastructure
+
+Mappings:
+  DbParametersMap:
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters:
+        Location: ../parameters/db-parameters.yaml
+  CommonParametersMap:
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters:
+        Location: ../parameters/parameters.yaml
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: ArsenPdp
+  EnvironmentName:
+    Type: String
+    AllowedValues:
+      - Dev
+      - Prod
+    Default: Dev
+
+
+Resources:
+  ArsenPdpCloud:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: resources/cloud.yaml
+      Parameters:
+        EnvTag: !FindInMap [CommonParametersMap, !Ref EnvironmentName, EnvTag]
+        ProjectName: !Ref ProjectName
+
+  ArsenPdpSecurity:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: resources/security.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        VPC: !GetAtt ArsenPdpCloud.Outputs.ArsenPdpVPC
+
+  ArsenPdpDatabase:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: resources/cloud.yaml
+      Parameters:
+        DbName: !FindInMap [DbParametersMap, Common, Name]
+        DbUserName: !FindInMap [DbParametersMap, !Ref EnvironmentName, UserName]
+        DbPassword: !FindInMap [DbParametersMap, !Ref EnvironmentName, UserName]
+        DbSecurityGroupId: !GetAtt ArsenPdpSecurity.Outputs.ArsenPdpDbSecurityGroupId
+        PrivateSubnets: !GetAtt ArsenPdpCloud.Outputs.ArsenPdpPrivateSubnets
+        EnvTag: !FindInMap [CommonParametersMap, !Ref EnvironmentName, EnvTag]
+        ProjectName: !Ref ProjectName
+        StorageSize: !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageSize]
+        StorageType: !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageType]
+        InstanceClass: !FindInMap [DbParametersMap, !Ref EnvironmentName, InstanceClass]
+        Engine: !FindInMap [DbParametersMap, Common, Engine]
+        EngineVersion: !FindInMap [DbParametersMap, Common, EngineVersion]
+        EnvironmentName: !Ref EnvironmentName

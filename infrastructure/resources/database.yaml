@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: ArsenPdp Database
+
+Parameters:
+  DbName:
+    Type: String
+  DbUsername:
+    Type: String
+  DbPassword:
+    Type: String
+  DbSecurityGroupId:
+    Type: String
+  PrivateSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+  EnvTag:
+    Type: String
+  ProjectName:
+    Type: String
+  StorageSize:
+    Type: Number
+    Description: Allocated storage size in GiB
+  StorageType:
+    Type: String
+    AllowedValues:
+      - standard
+      - gp2
+      - io1
+    Default: standard
+  InstanceClass:
+    Type: String
+  Engine:
+    Type: String
+  EngineVersion:
+    Type: String
+  EnvironmentName:
+    Type: String
+    AllowedValues:
+      - Dev
+      - Prod
+
+Resources:
+  ArsenPdpDbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: ArsenPdp Subnet Group
+      SubnetIds: !Ref PrivateSubnets
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  ArsenPdpDbInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: !Ref StorageSize
+      CopyTagsToSnapshot: True
+      DBInstanceClass: !Ref InstanceClass
+      DBInstanceIdentifier: !Sub arsenpdp-db-instance-${EnvironmentName}
+      DBName: !Ref DbName
+      DBSubnetGroupName: !Ref ArsenPdpDbSubnetGroup
+      Engine: !Ref Engine
+      EngineVersion: !Ref EngineVersion
+      MasterUsername: !Ref DbUsername
+      MasterUserPassword: !Ref DbPassword
+      PubliclyAccessible: false
+      StorageType: !Ref StorageType
+      VPCSecurityGroups:
+        - !Ref DbSecurityGroupId
+      Tags:
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+Outputs:
+  DbInstanceId:
+    Description: "InstanceId of the newly created RDS Instance."
+    Value: !Ref ArsenPdpDbInstance
+

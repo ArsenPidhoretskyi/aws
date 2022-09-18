@@ -1,0 +1,204 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: ArsenPdp Cloud
+
+Parameters:
+  EnvTag:
+    Type: String
+  ProjectName:
+    Type: String
+    Default: ArsenPdp
+
+Resources:
+  ArsenPdpVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.100.0.0/16
+      EnableDnsSupport: True
+      EnableDnsHostnames: True
+      Tags:
+        - Key: Name
+          Value: ArsenPdpVPC
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  # Internet Gateway
+  ArsenPdpInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    DependsOn: ArsenPdpVPC
+    Properties:
+      Tags:
+        - Key: Name
+          Value: ArsenPdpInternetGateway
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  ArsenPdpAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref ArsenPdpVPC
+      InternetGatewayId: !Ref ArsenPdpInternetGateway
+
+  # Public Subnets
+  ArsenPdpPublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ArsenPdpVPC
+      AvailabilityZone: !Select [0, !GetAZs ] # Zone A
+      CidrBlock: 10.100.10.0/24
+      Tags:
+        - Key: Name
+          Value: ArsenPdpPublicSubnetA
+
+  ArsenPdpPublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ArsenPdpVPC
+      AvailabilityZone: !Select [1, !GetAZs ] # Zone B
+      CidrBlock: 10.100.20.0/24
+      Tags:
+        - Key: Name
+          Value: ArsenPdpPublicSubnetA
+
+  ArsenPdpPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ArsenPdpVPC
+      Tags:
+        - Key: Name
+          Value: ArsenPdpPublicRouteTable
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  ArsenPdpPublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ArsenPdpPublicSubnetA
+      RouteTableId: !Ref ArsenPdpPublicRouteTable
+
+  ArsenPdpPublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ArsenPdpPublicSubnetB
+      RouteTableId: !Ref ArsenPdpPublicRouteTable
+
+  # Route from the Public Subnets to the Internet Gateway
+  ArsenPdpPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: ArsenPdpAttachGateway
+    Properties:
+      RouteTableId: !Ref ArsenPdpPublicRouteTable
+      GatewayId: !Ref ArsenPdpInternetGateway
+      DestinationCidrBlock: 0.0.0.0/0
+
+  # Private Subnets
+  ArsenPdpPrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ArsenPdpVPC
+      AvailabilityZone: !Select [0, !GetAZs ] # Zone A
+      CidrBlock: 10.100.11.0/24
+      Tags:
+        - Key: Name
+          Value: ArsenPdpPrivateSubnetA
+
+  ArsenPdpPrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ArsenPdpVPC
+      AvailabilityZone: !Select [1, !GetAZs ] # Zone B
+      CidrBlock: 10.100.21.0/24
+      Tags:
+        - Key: Name
+          Value: ArsenPdpPrivateSubnetB
+
+  ArsenPdpPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ArsenPdpVPC
+      Tags:
+        - Key: Name
+          Value: ArsenPdpPrivateRouteTable
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  ArsenPdpPrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ArsenPdpPrivateSubnetA
+      RouteTableId: !Ref ArsenPdpPrivateRouteTable
+
+  ArsenPdpPrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ArsenPdpPrivateSubnetB
+      RouteTableId: !Ref ArsenPdpPrivateRouteTable
+
+  # NAT Gateway
+  ArsenPdpElasticIP:
+    DependsOn: ArsenPdpAttachGateway
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: ArsenPdpEIP
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  ArsenPdpNATGateway:
+    Type: AWS::EC2::NatGateway
+    DependsOn: ArsenPdpElasticIP
+    Properties:
+      AllocationId: !GetAtt ArsenPdpElasticIP.AllocationId
+      SubnetId: !Ref ArsenPdpPublicSubnetA
+      Tags:
+        - Key: Name
+          Value: ArsenPdpNATGateway
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  # Route from the Private Subnets to the NAT Gateway
+  ArsenPdpPrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref ArsenPdpPrivateRouteTable
+      NatGatewayId: !Ref ArsenPdpNATGateway
+      DestinationCidrBlock: 0.0.0.0/0
+
+Outputs:
+  ArsenPdpVPC:
+    Description: "ArsenPdp VPC"
+    Value: !Ref ArsenPdpVPC
+    Export:
+      Name: ArsenPdpVPCId
+
+  ArsenPdpPrivateSubnets:
+    Description: "ArsenPdp Private Subnets"
+    Value: !Join [",", [!Ref ArsenPdpPrivateSubnetA, !Ref ArsenPdpPrivateSubnetB]]
+    Export:
+      Name: ArsenPdpPrivateSubnets
+
+  ArsenPdpPrivateSubnetA:
+    Description: "ArsenPdp Private Subnet A"
+    Value: !Ref ArsenPdpPrivateSubnetA
+    Export:
+      Name: ArsenPdpPrivateSubnetA
+
+  ArsenPdpPrivateSubnetB:
+    Description: "ArsenPdp Private Subnet B"
+    Value: !Ref ArsenPdpPrivateSubnetB
+    Export:
+      Name: ArsenPdpPrivateSubnetB

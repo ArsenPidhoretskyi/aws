@@ -1,0 +1,25 @@
+version=0.1
+
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "ArsenPdpInfrastructureDev"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1ujcinxjhjrvx"
+s3_prefix = "ArsenPdpInfrastructureDev"
+region = "us-east-1"
+confirm_changeset = false
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "EnvironmentName=\"Dev\""
+
+[prod]
+[prod.deploy]
+[prod.deploy.parameters]
+stack_name = "ArsenPdpInfrastructure"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1ujcinxjhjrvx"
+s3_prefix = "ArsenPdpInfrastructure"
+region = "us-east-1"
+confirm_changeset = false
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "EnvironmentName=\"Prod\""

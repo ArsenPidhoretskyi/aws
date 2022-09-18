@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: ArsenPdp Security
+
+Parameters:
+  ProjectName:
+    Type: String
+  VPC:
+    Type: AWS::EC2::VPC::Id
+
+Resources:
+  ArsenPdpDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Ingress for DB
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          Description: "Private Subnet A"
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 10.100.11.0/24
+        - IpProtocol: tcp
+          Description: "Private Subnet B"
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 10.100.21.0/24
+        - IpProtocol: tcp
+          Description: "Public Subnet A"
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 10.100.10.0/24
+      Tags:
+        - Key: Name
+          Value: ArsenPdpDBSecurityGroup
+        - Key: project
+          Value: !Ref VPC
+        - Key: env
+          Value: !Ref EnvTag
+
+
+Outputs:
+  ArsenPdpDbSecurityGroupId:
+    Description: "ArsenPdp DB Security group"
+    Value: !GetAtt ArsenPdpDBSecurityGroup.GroupId

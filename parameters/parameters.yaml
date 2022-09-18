@@ -1,0 +1,5 @@
+Dev:
+  EnvTag: dev
+
+Prod:
+  EnvTag: prod
