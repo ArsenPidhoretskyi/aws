@@ -7,8 +7,47 @@ Parameters:
     Type: String
   VPC:
     Type: AWS::EC2::VPC::Id
+  EnvTag:
+    Type: String
 
 Resources:
+  ArsenPdpLambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SecurityGroup for Lambda Functions
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: ArsenPdpLambdaSecurityGroup
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  ArsenPdpSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ArsenPdp server security group.
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          Description: http
+          SourceSecurityGroupId: !Ref ArsenPdpLambdaSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          Description: https
+          SourceSecurityGroupId: !Ref ArsenPdpLambdaSecurityGroup
+      Tags:
+        - Key: Name
+          Value: ArsenPdpSecurityGroup
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
   ArsenPdpDBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -34,12 +73,16 @@ Resources:
         - Key: Name
           Value: ArsenPdpDBSecurityGroup
         - Key: project
-          Value: !Ref VPC
+          Value: !Ref ProjectName
         - Key: env
           Value: !Ref EnvTag
-
 
 Outputs:
   ArsenPdpDbSecurityGroupId:
     Description: "ArsenPdp DB Security group"
     Value: !GetAtt ArsenPdpDBSecurityGroup.GroupId
+  ArsenPdpLambdaSecurityGroup:
+    Description: "ArsenPdp Lambda Security group"
+    Value: !GetAtt ArsenPdpLambdaSecurityGroup.GroupId
+    Export:
+      Name: ArsenPdpLambdaSecurityGroup

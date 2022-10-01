@@ -5,7 +5,7 @@ Description: ArsenPdp Database
 Parameters:
   DbName:
     Type: String
-  DbUsername:
+  DbUserName:
     Type: String
   DbPassword:
     Type: String
@@ -62,7 +62,7 @@ Resources:
       DBSubnetGroupName: !Ref ArsenPdpDbSubnetGroup
       Engine: !Ref Engine
       EngineVersion: !Ref EngineVersion
-      MasterUsername: !Ref DbUsername
+      MasterUsername: !Ref DbUserName
       MasterUserPassword: !Ref DbPassword
       PubliclyAccessible: false
       StorageType: !Ref StorageType
@@ -75,7 +75,8 @@ Resources:
           Value: !Ref EnvTag
 
 Outputs:
-  DbInstanceId:
-    Description: "InstanceId of the newly created RDS Instance."
-    Value: !Ref ArsenPdpDbInstance
-
+  ArsenPdpDbAddress:
+    Description: "Database URL"
+    Value: !GetAtt ArsenPdpDbInstance.Endpoint.Address
+    Export:
+      Name: ArsenPdpDbAddress

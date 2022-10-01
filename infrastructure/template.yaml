@@ -25,7 +25,6 @@ Parameters:
       - Prod
     Default: Dev
 
-
 Resources:
   ArsenPdpCloud:
     Type: AWS::Serverless::Application
@@ -42,22 +41,56 @@ Resources:
       Parameters:
         ProjectName: !Ref ProjectName
         VPC: !GetAtt ArsenPdpCloud.Outputs.ArsenPdpVPC
+        EnvTag: !FindInMap [CommonParametersMap, !Ref EnvironmentName, EnvTag]
 
   ArsenPdpDatabase:
     Type: AWS::Serverless::Application
     Properties:
-      Location: resources/cloud.yaml
+      Location: resources/database.yaml
       Parameters:
         DbName: !FindInMap [DbParametersMap, Common, Name]
         DbUserName: !FindInMap [DbParametersMap, !Ref EnvironmentName, UserName]
-        DbPassword: !FindInMap [DbParametersMap, !Ref EnvironmentName, UserName]
+        DbPassword: !FindInMap [DbParametersMap, !Ref EnvironmentName, Password]
         DbSecurityGroupId: !GetAtt ArsenPdpSecurity.Outputs.ArsenPdpDbSecurityGroupId
         PrivateSubnets: !GetAtt ArsenPdpCloud.Outputs.ArsenPdpPrivateSubnets
         EnvTag: !FindInMap [CommonParametersMap, !Ref EnvironmentName, EnvTag]
         ProjectName: !Ref ProjectName
-        StorageSize: !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageSize]
-        StorageType: !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageType]
-        InstanceClass: !FindInMap [DbParametersMap, !Ref EnvironmentName, InstanceClass]
+        StorageSize:
+          !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageSize]
+        StorageType:
+          !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageType]
+        InstanceClass:
+          !FindInMap [DbParametersMap, !Ref EnvironmentName, InstanceClass]
         Engine: !FindInMap [DbParametersMap, Common, Engine]
         EngineVersion: !FindInMap [DbParametersMap, Common, EngineVersion]
         EnvironmentName: !Ref EnvironmentName
+
+  ArsenPdpLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+      Policies:
+        - PolicyName: ArsenPdpParametersAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ArsenPdp*"
+
+Outputs:
+  ArsenPdpLambdaRole:
+    Description: "ArsenPdp Lambda Role"
+    Value: !GetAtt ArsenPdpLambdaRole.Arn
+    Export:
+      Name: ArsenPdpLambdaRole
