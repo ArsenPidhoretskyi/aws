@@ -50,6 +50,7 @@ Resources:
       VpcId: !Ref ArsenPdpVPC
       AvailabilityZone: !Select [0, !GetAZs ] # Zone A
       CidrBlock: 10.100.10.0/24
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: ArsenPdpPublicSubnetA
@@ -59,6 +60,7 @@ Resources:
     Properties:
       VpcId: !Ref ArsenPdpVPC
       AvailabilityZone: !Select [1, !GetAZs ] # Zone B
+      MapPublicIpOnLaunch: true
       CidrBlock: 10.100.20.0/24
       Tags:
         - Key: Name
@@ -185,7 +187,7 @@ Outputs:
     Export:
       Name: ArsenPdpVPCId
 
-  ArsenPdpPrivateSubnets:
+  PrivateSubnets:
     Description: "ArsenPdp Private Subnets"
     Value: !Join [",", [!Ref ArsenPdpPrivateSubnetA, !Ref ArsenPdpPrivateSubnetB]]
     Export:

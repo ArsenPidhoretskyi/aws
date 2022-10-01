@@ -1,5 +1,9 @@
 Dev:
   EnvTag: dev
+  ServerEC2InstanceType: t2.micro
+  SSHKeyName: arsen-pdp-dev
 
 Prod:
   EnvTag: prod
+  ServerEC2InstanceType: t2.micro
+  SSHKeyName: arsen-pdp

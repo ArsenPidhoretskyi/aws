@@ -78,6 +78,9 @@ Resources:
           Value: !Ref EnvTag
 
 Outputs:
+  ArsenPdpSecurityGroup:
+    Description: "ArsenPdp Main Security group"
+    Value: !GetAtt ArsenPdpSecurityGroup.GroupId
   ArsenPdpDbSecurityGroupId:
     Description: "ArsenPdp DB Security group"
     Value: !GetAtt ArsenPdpDBSecurityGroup.GroupId

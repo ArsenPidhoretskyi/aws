@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: ArsenPdp Server Main
+
+Parameters:
+  SSHKeyName:
+    Type: String
+  NodeInstanceType:
+    Type: String
+  MainServerSecurityGroupId:
+    Type: String
+  SubnetIds:
+    Description: "[EC2-VPC] subnets to launch the instance into."
+    Type: List<AWS::EC2::Subnet::Id>
+  ImageId:
+    Description: The ID of the AMI. An AMI ID is required to launch an instance and must be specified here or in a launch template.
+    Type: String
+  ProjectName:
+    Type: String
+  EnvTag:
+    Type: String
+
+Resources:
+  ArsenPdpEC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Tags:
+        - Key: Name
+          Value: ArsenPdpEC2InstanceRole
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  ArsenPdpEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ArsenPdpEC2InstanceRole
+
+  ArsenPdpEC2KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: !Ref SSHKeyName
+      KeyType: rsa
+      Tags:
+        - Key: Name
+          Value: ArsenPdpEC2KeyPair
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+  ArsenPdpEC2Instance:
+    DependsOn: ArsenPdpEC2KeyPair
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref NodeInstanceType
+      ImageId: !Ref ImageId
+      KeyName: !Ref SSHKeyName
+      IamInstanceProfile: !Ref ArsenPdpEC2InstanceProfile
+      SecurityGroupIds:
+        - !Ref MainServerSecurityGroupId
+      SubnetId: !Select [0, !Ref SubnetIds]
+      UserData: !Base64 |
+        #!/bin/bash
+        sudo amazon-linux-extras install docker
+        sudo usermod -a -G docker ec2-user
+        sudo service docker start
+        sudo chkconfig docker on
+        sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+        sudo systemctl status amazon-ssm-agent
+        sudo curl https://s3.us-east-2.amazonaws.com/aws-xray-assets.us-east-2/xray-daemon/aws-xray-daemon-3.x.rpm -o /home/ec2-user/xray.rpm
+        sudo yum install -y /home/ec2-user/xray.rpm
+        sudo reboot
+      Tags:
+        - Key: Name
+          Value: ArsenPdpEC2Instance
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
+Outputs:
+  EC2InstanceId:
+    Value: !Ref ArsenPdpEC2Instance
+  PublicDnsName:
+    Value: !GetAtt ArsenPdpEC2Instance.PublicDnsName
+  PrivateDnsName:
+    Value: !GetAtt ArsenPdpEC2Instance.PrivateDnsName

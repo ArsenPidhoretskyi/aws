@@ -8,13 +8,16 @@ Mappings:
       Name: AWS::Include
       Parameters:
         Location: ../parameters/db-parameters.yaml
-  CommonParametersMap:
+  ParametersMap:
     Fn::Transform:
       Name: AWS::Include
       Parameters:
         Location: ../parameters/parameters.yaml
 
 Parameters:
+  HVMLinux2:
+    Type: String
+    Default: ami-0443305dabd4be2bc
   ProjectName:
     Type: String
     Default: ArsenPdp
@@ -31,7 +34,7 @@ Resources:
     Properties:
       Location: resources/cloud.yaml
       Parameters:
-        EnvTag: !FindInMap [CommonParametersMap, !Ref EnvironmentName, EnvTag]
+        EnvTag: !FindInMap [ParametersMap, !Ref EnvironmentName, EnvTag]
         ProjectName: !Ref ProjectName
 
   ArsenPdpSecurity:
@@ -41,7 +44,7 @@ Resources:
       Parameters:
         ProjectName: !Ref ProjectName
         VPC: !GetAtt ArsenPdpCloud.Outputs.ArsenPdpVPC
-        EnvTag: !FindInMap [CommonParametersMap, !Ref EnvironmentName, EnvTag]
+        EnvTag: !FindInMap [ParametersMap, !Ref EnvironmentName, EnvTag]
 
   ArsenPdpDatabase:
     Type: AWS::Serverless::Application
@@ -52,18 +55,28 @@ Resources:
         DbUserName: !FindInMap [DbParametersMap, !Ref EnvironmentName, UserName]
         DbPassword: !FindInMap [DbParametersMap, !Ref EnvironmentName, Password]
         DbSecurityGroupId: !GetAtt ArsenPdpSecurity.Outputs.ArsenPdpDbSecurityGroupId
-        PrivateSubnets: !GetAtt ArsenPdpCloud.Outputs.ArsenPdpPrivateSubnets
-        EnvTag: !FindInMap [CommonParametersMap, !Ref EnvironmentName, EnvTag]
+        PrivateSubnets: !GetAtt ArsenPdpCloud.Outputs.PrivateSubnets
+        EnvTag: !FindInMap [ParametersMap, !Ref EnvironmentName, EnvTag]
         ProjectName: !Ref ProjectName
-        StorageSize:
-          !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageSize]
-        StorageType:
-          !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageType]
-        InstanceClass:
-          !FindInMap [DbParametersMap, !Ref EnvironmentName, InstanceClass]
+        StorageSize: !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageSize]
+        StorageType: !FindInMap [DbParametersMap, !Ref EnvironmentName, StorageType]
+        InstanceClass: !FindInMap [DbParametersMap, !Ref EnvironmentName, InstanceClass]
         Engine: !FindInMap [DbParametersMap, Common, Engine]
         EngineVersion: !FindInMap [DbParametersMap, Common, EngineVersion]
         EnvironmentName: !Ref EnvironmentName
+
+  ArsenPdpInstanceBackendMain:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: resources/ec2.yaml
+      Parameters:
+        SSHKeyName: !FindInMap [ParametersMap, !Ref EnvironmentName, SSHKeyName]
+        NodeInstanceType: !FindInMap [ParametersMap, !Ref EnvironmentName, ServerEC2InstanceType]
+        MainServerSecurityGroupId: !GetAtt ArsenPdpSecurity.Outputs.ArsenPdpSecurityGroup
+        SubnetIds: !GetAtt ArsenPdpCloud.Outputs.PrivateSubnets
+        ImageId: !Ref HVMLinux2
+        EnvTag: !FindInMap [ParametersMap, !Ref EnvironmentName, EnvTag]
+        ProjectName: !Ref ProjectName
 
   ArsenPdpAPIGatewayRole:
     Type: AWS::IAM::Role
