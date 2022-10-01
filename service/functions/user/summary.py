@@ -1,9 +1,11 @@
 from models import User
+from db_summary import ObjectSummary
 
 
-class UserSummary:
+class UserSummary(ObjectSummary[User]):
     def __init__(self, user: User):
-        self.id = user.id
+        super(UserSummary, self).__init__(user)
+
         self.firstName = user.firstName
         self.lastName = user.lastName
         self.email = user.email
