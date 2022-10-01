@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: ArsenPdp API
+
+Globals:
+  Api:
+    EndpointConfiguration: EDGE
+    OpenApiVersion: 3.0.3
+  Function:
+    Timeout: 300
+    Tags:
+      project: !Ref Project
+      env: !Ref EnvironmentName
+
+Mappings:
+  DbParametersMap:
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters:
+        Location: ../parameters/db-parameters.yaml
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    AllowedValues:
+      - Dev
+      - Prod
+    Default: Dev
+  Project:
+    Type: String
+    Default: ArsenPdp
+
+Conditions:
+  IsProduction: !Equals [!Ref EnvironmentName, Prod]
+
+Resources:
+  ArsenPdpApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Auth:
+        AddDefaultAuthorizerToCorsPreflight: False
+      # Enabling CORS preflight
+      Cors:
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowMethods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+        AllowOrigin: "'*'"
+      # Access-Control-Allow-Origin header for the REST methods is set using DefinitionBody
+      # https://docs.amazonaws.cn/en_us/serverless-application-model/latest/developerguide/sam-property-api-corsconfiguration.html
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: configs/api.yaml
+      MethodSettings:
+        - LoggingLevel: ERROR
+          ResourcePath: "/*"
+          HttpMethod: "*"
+          MetricsEnabled: True
+          DataTraceEnabled: !If [IsProduction, False, True]
+      Name: !Sub "ArsenPdp${EnvironmentName}Api"
+      StageName: default
+      Tags:
+        project: !Ref Project
+        env: !Ref EnvironmentName
+
+  DatabaseLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: layers/database
+      CompatibleRuntimes:
+        - python3.9
+      LayerName: !Sub "ArsenPdp${EnvironmentName}DatabaseLayer"
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: python3.9
+
+  MigrationsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/migrations
+      Environment:
+        Variables:
+          DB_CONNECTION_STRING: !Sub &db-connection-string
+            - "postgresql://${Username}:${Password}@${Host}/${Database}"
+            - Host: !ImportValue ArsenPdpDbAddress
+              Username:
+                !FindInMap [DbParametersMap, !Ref EnvironmentName, UserName]
+              Database: !FindInMap [DbParametersMap, Common, Name]
+              Password:
+                !FindInMap [DbParametersMap, !Ref EnvironmentName, Password]
+      Handler: app.lambda_handler
+      Role: !ImportValue ArsenPdpLambdaRole
+      Runtime: python3.9
+      Layers:
+        - !Ref DatabaseLayer
+      VpcConfig: &vpc-config
+        SecurityGroupIds:
+          - !ImportValue ArsenPdpLambdaSecurityGroup
+        SubnetIds: !Split [",", !ImportValue ArsenPdpPrivateSubnets]
+
+  UserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/user
+      Environment:
+        Variables:
+          DB_CONNECTION_STRING: *db-connection-string
+      Handler: app.lambda_handler
+      Role: !ImportValue ArsenPdpLambdaRole
+      Runtime: python3.9
+      Layers:
+        - !Ref DatabaseLayer
+      VpcConfig: *vpc-config
+      Events:
+        GetUsers:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: get
+            RestApiId: !Ref ArsenPdpApi
+        GetUser:
+          Type: Api
+          Properties:
+            Path: /users/{id}
+            Method: get
+            RestApiId: !Ref ArsenPdpApi
+        PostUser:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: post
+            RestApiId: !Ref ArsenPdpApi

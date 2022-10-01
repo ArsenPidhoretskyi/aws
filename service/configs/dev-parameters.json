@@ -1,0 +1,5 @@
+{
+  "Parameters": {
+    "DB_CONNECTION_STRING": "postgresql://arsen_pdp_dev_admin:9l33hVJNW1Br@docker.for.mac.localhost/TestArsenDb"
+  }
+}

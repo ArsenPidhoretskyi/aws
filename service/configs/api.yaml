@@ -1,0 +1,290 @@
+openapi: 3.0.3
+
+info:
+  title: ArsenPdp API
+  version: "0.1"
+
+x-amazon-apigateway-request-validators:
+  all:
+    validateRequestBody: true
+    validateRequestParameters: true
+
+x-amazon-apigateway-request-validator: all
+
+x-arsen-pdp-definitions:
+  responses: &x-arsen-pdp-responses
+    400:
+      $ref: "#/components/responses/Error"
+    403:
+      $ref: "#/components/responses/Error"
+    404:
+      $ref: "#/components/responses/Error"
+    409:
+      $ref: "#/components/responses/Error"
+    500:
+      $ref: "#/components/responses/Error"
+
+  response-headers:
+    type: object
+    headers: &x-arsen-pdp-response-headers
+      Access-Control-Allow-Origin:
+        schema:
+          type: string
+      X-App-Version:
+        schema:
+          type: string
+      X-Build-Number:
+        schema:
+          type: string
+
+  response-parameters:
+    type: object
+    responseParameters: &x-arsen-pdp-response-parameters
+      method.response.header.Access-Control-Allow-Origin: "'*'"
+
+  response-created:
+    type: object
+    default: &x-arsen-pdp-response-created
+      statusCode: 201
+      responseParameters: *x-arsen-pdp-response-parameters
+
+  response-default:
+    type: object
+    default: &x-arsen-pdp-response-default
+      statusCode: 200
+      responseParameters: *x-arsen-pdp-response-parameters
+
+  response-failures: &x-arsen-pdp-response-failures
+    BadRequest: &x-arsen-pdp-response-badrequest
+      statusCode: 400
+      responseParameters: *x-arsen-pdp-response-parameters
+      responseTemplates:
+        application/json: |
+          {
+            "code": 400,
+            "message": $input.json('$.errorMessage')
+          }
+    Forbidden: &x-arsen-pdp-response-forbidden
+      statusCode: 403
+      responseParameters: *x-arsen-pdp-response-parameters
+      responseTemplates:
+        application/json: |
+          {
+            "code": 403,
+            "message": $input.json('$.errorMessage')
+          }
+    NotFound: &x-arsen-pdp-response-notfound
+      statusCode: 404
+      responseParameters: *x-arsen-pdp-response-parameters
+      responseTemplates:
+        application/json: |
+          {
+            "code": 404,
+            "message": $input.json('$.errorMessage')
+          }
+    Conflict: &x-arsen-pdp-response-conflict
+      statusCode: 409
+      responseParameters: *x-arsen-pdp-response-parameters
+      responseTemplates:
+        application/json: |
+          {
+            "code": 409,
+            "message": $input.json('$.errorMessage')
+          }
+    InternalServerError: &x-arsen-pdp-response-internalerror
+      statusCode: 500
+      responseParameters: *x-arsen-pdp-response-parameters
+      responseTemplates:
+        application/json: |
+          {
+            "code": 500,
+            "message": $input.json('$.errorMessage')
+          }
+
+paths:
+  /users:
+    get:
+      tags:
+        - Users
+      responses:
+        <<: *x-arsen-pdp-responses
+        201:
+          $ref: "#/components/responses/UserList"
+      x-amazon-apigateway-integration:
+        type: aws
+        httpMethod: POST
+        passthroughBehavior: when_no_match
+        responses:
+          <<: *x-arsen-pdp-response-failures
+          default: *x-arsen-pdp-response-created
+        requestTemplates:
+          application/json: |
+            {
+              "method": "$context.httpMethod",
+              "resource": "$context.resourcePath"
+            }
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserFunction.Arn}/invocations
+    post:
+      tags:
+        - Users
+      requestBody:
+        $ref: "#/components/requestBodies/PostUser"
+      responses:
+        <<: *x-arsen-pdp-responses
+        201:
+          $ref: "#/components/responses/User"
+      x-amazon-apigateway-integration:
+        type: aws
+        httpMethod: POST
+        passthroughBehavior: when_no_match
+        responses:
+          <<: *x-arsen-pdp-response-failures
+          default: *x-arsen-pdp-response-created
+        requestTemplates:
+          application/json: |
+            {
+              "object": $input.json('$'),
+              "method": "$context.httpMethod",
+              "resource": "$context.resourcePath"
+            }
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserFunction.Arn}/invocations
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/ObjectId"
+      responses:
+        <<: *x-arsen-pdp-responses
+        200:
+          $ref: "#/components/responses/User"
+      x-amazon-apigateway-integration:
+        type: aws
+        httpMethod: POST
+        passthroughBehavior: when_no_match
+        responses:
+          <<: *x-arsen-pdp-response-failures
+          default: *x-arsen-pdp-response-default
+        requestTemplates:
+          application/json: |
+            {
+              "objectId": "$input.params('id')",
+              "method": "$context.httpMethod",
+              "resource": "$context.resourcePath"
+            }
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserFunction.Arn}/invocations
+
+components:
+  requestBodies:
+    PostUser:
+      required: True
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PostUser"
+
+  responses:
+    Empty:
+      description: Empty response.
+      headers: *x-arsen-pdp-response-headers
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Empty"
+    Error:
+      description: An error occurred.
+      headers: *x-arsen-pdp-response-headers
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Success:
+      description: Success.
+      headers: *x-arsen-pdp-response-headers
+    User:
+      description: User Response
+      headers: *x-arsen-pdp-response-headers
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/User"
+    UserList:
+      description: User List Response
+      headers: *x-arsen-pdp-response-headers
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UserList"
+
+  parameters:
+    ObjectId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+
+  schemas:
+    Empty:
+      type: object
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+      required:
+        - code
+        - message
+    Identifier:
+      type: integer
+      format: int64
+    Identifiable:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Identifier"
+      required:
+        - id
+    DefaultProperties:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/Identifiable"
+        - type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+          required:
+            - createdAt
+            - updatedAt
+    PostUser:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+      required:
+        - firstName
+        - lastName
+        - email
+    User:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/DefaultProperties"
+        - $ref: "#/components/schemas/PostUser"
+    UserList:
+      type: array
+      items:
+        $ref: "#/components/schemas/User"

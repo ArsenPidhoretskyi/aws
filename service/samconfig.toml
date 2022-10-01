@@ -1,0 +1,29 @@
+version=0.1
+
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "ArsenPdpDev"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-eqmewun4ix12"
+s3_prefix = "ArsenPdpDev"
+region = "us-east-2"
+confirm_changeset = false
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "EnvironmentName=\"Dev\""
+
+[default.local_invoke.parameters]
+env_vars = "configs/dev-parameters.json"
+profile = "default"
+
+[prod]
+[prod.deploy]
+[prod.deploy.parameters]
+stack_name = "ArsenPdp"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-eqmewun4ix12"
+s3_prefix = "ArsenPdp"
+region = "us-east-2"
+confirm_changeset = true
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "EnvironmentName=\"Prod\""
