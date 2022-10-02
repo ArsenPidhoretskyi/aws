@@ -3,10 +3,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: ArsenPdp Security
 
 Parameters:
-  ProjectName:
-    Type: String
   VPC:
     Type: AWS::EC2::VPC::Id
+  ProjectName:
+    Type: String
   EnvTag:
     Type: String
 
@@ -77,6 +77,25 @@ Resources:
         - Key: env
           Value: !Ref EnvTag
 
+  ArsenPdpBastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ArsenPdp Bastion Host Security Group
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          Description: "Anywhere"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: ArsenPdpBastionSecurityGroup
+        - Key: project
+          Value: !Ref ProjectName
+        - Key: env
+          Value: !Ref EnvTag
+
 Outputs:
   ArsenPdpSecurityGroup:
     Description: "ArsenPdp Main Security group"
@@ -84,6 +103,9 @@ Outputs:
   ArsenPdpDbSecurityGroupId:
     Description: "ArsenPdp DB Security group"
     Value: !GetAtt ArsenPdpDBSecurityGroup.GroupId
+  ArsenPdpBastionSecurityGroup:
+    Description: "ArsenPdp Bastion Security group"
+    Value: !GetAtt ArsenPdpBastionSecurityGroup.GroupId
   ArsenPdpLambdaSecurityGroup:
     Description: "ArsenPdp Lambda Security group"
     Value: !GetAtt ArsenPdpLambdaSecurityGroup.GroupId

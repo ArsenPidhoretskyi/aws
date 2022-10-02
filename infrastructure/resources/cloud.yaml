@@ -193,6 +193,12 @@ Outputs:
     Export:
       Name: ArsenPdpPrivateSubnets
 
+  PublicSubnets:
+    Description: "ArsenPdp Public Subnets"
+    Value: !Join [",", [!Ref ArsenPdpPublicSubnetA, !Ref ArsenPdpPublicSubnetB]]
+    Export:
+      Name: ArsenPdpPublicSubnets
+
   ArsenPdpPrivateSubnetA:
     Description: "ArsenPdp Private Subnet A"
     Value: !Ref ArsenPdpPrivateSubnetA

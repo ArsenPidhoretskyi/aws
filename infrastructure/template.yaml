@@ -68,11 +68,24 @@ Resources:
   ArsenPdpInstanceBackendMain:
     Type: AWS::Serverless::Application
     Properties:
-      Location: resources/ec2.yaml
+      Location: resources/ec2-main.yaml
       Parameters:
         SSHKeyName: !FindInMap [ParametersMap, !Ref EnvironmentName, SSHKeyName]
         NodeInstanceType: !FindInMap [ParametersMap, !Ref EnvironmentName, ServerEC2InstanceType]
         MainServerSecurityGroupId: !GetAtt ArsenPdpSecurity.Outputs.ArsenPdpSecurityGroup
+        SubnetIds: !GetAtt ArsenPdpCloud.Outputs.PrivateSubnets
+        ImageId: !Ref HVMLinux2
+        EnvTag: !FindInMap [ParametersMap, !Ref EnvironmentName, EnvTag]
+        ProjectName: !Ref ProjectName
+
+  ArsenPdpInstanceBastion:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: resources/ec2-main.yaml
+      Parameters:
+        SSHKeyName: !FindInMap [ParametersMap, !Ref EnvironmentName, SSHKeyName]
+        InstanceType: !FindInMap [ParametersMap, !Ref EnvironmentName, ServerEC2InstanceType]
+        BastionSecurityGroupId: !GetAtt ArsenPdpSecurity.Outputs.ArsenPdpBastionSecurityGroup
         SubnetIds: !GetAtt ArsenPdpCloud.Outputs.PrivateSubnets
         ImageId: !Ref HVMLinux2
         EnvTag: !FindInMap [ParametersMap, !Ref EnvironmentName, EnvTag]
