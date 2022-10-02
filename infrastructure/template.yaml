@@ -86,7 +86,7 @@ Resources:
         SSHKeyName: !FindInMap [ParametersMap, !Ref EnvironmentName, SSHKeyName]
         InstanceType: !FindInMap [ParametersMap, !Ref EnvironmentName, ServerEC2InstanceType]
         BastionSecurityGroupId: !GetAtt ArsenPdpSecurity.Outputs.ArsenPdpBastionSecurityGroup
-        SubnetIds: !GetAtt ArsenPdpCloud.Outputs.PrivateSubnets
+        SubnetIds: !GetAtt ArsenPdpCloud.Outputs.PublicSubnets
         ImageId: !Ref HVMLinux2
         EnvTag: !FindInMap [ParametersMap, !Ref EnvironmentName, EnvTag]
         ProjectName: !Ref ProjectName
